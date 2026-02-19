@@ -5,17 +5,20 @@ import datetime
 import matplotlib.pyplot as plt
 from PIL import Image
 import io
-import google.generativeai as genai  # Gemini用に追加
+import google.generativeai as genai
+from dotenv import load_dotenv  # 追加
+
+# .env ファイルやサーバーの環境変数を読み込む
+load_dotenv()
 
 # --- 設定 ---
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Geminiの設定
+# Geminiの設定（環境変数から取得）
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
-# 画像とテキスト両方を扱える最新モデル
 model = genai.GenerativeModel('gemini-1.5-flash')
 
 study_log = []
@@ -68,7 +71,7 @@ async def plan(ctx):
 ・復習 1h (昨日のミスを潰す)
 """)
 
-# 📷 画像問題読み取り（Gemini版：こちらが無料サーバーで動く正解です）
+# 📷 画像問題読み取り
 @bot.command()
 async def 読み取り(ctx):
     if not ctx.message.attachments:
@@ -81,7 +84,6 @@ async def 読み取り(ctx):
             image_bytes = await attachment.read()
             image = Image.open(io.BytesIO(image_bytes))
 
-            # Geminiに画像を渡してテキスト化＆解説
             prompt = "この画像に書かれている文字をすべて書き起こし、さらに受験生の助けになるように重要ポイントを短く解説してください。"
             response = model.generate_content([prompt, image])
             
@@ -99,7 +101,7 @@ async def 戦略(ctx):
 ・**理科**: 基礎問題精講を3周回せ。
 """)
 
-# 環境変数からトークンを読み込む（Render/Koyeb用）
+# 環境変数からトークンを読み込む
 token = os.getenv("DISCORD_TOKEN")
 if token:
     bot.run(token)
