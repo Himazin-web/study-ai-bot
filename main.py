@@ -6,17 +6,34 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import io
 import google.generativeai as genai
-from dotenv import load_dotenv  # 追加
+from dotenv import load_dotenv
+from flask import Flask
+from threading import Thread
 
 # .env ファイルやサーバーの環境変数を読み込む
 load_dotenv()
 
-# --- 設定 ---
+# --- Flask (Renderの強制終了対策) ---
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is running!"
+
+def run():
+    # Renderはデフォルトでポート10000を使用することが多いため指定
+    app.run(host='0.0.0.0', port=10000)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
+
+# --- Discord Bot 設定 ---
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Geminiの設定（環境変数から取得）
+# Geminiの設定
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
@@ -101,9 +118,14 @@ async def 戦略(ctx):
 ・**理科**: 基礎問題精講を3周回せ。
 """)
 
-# 環境変数からトークンを読み込む
-token = os.getenv("DISCORD_TOKEN")
-if token:
-    bot.run(token)
-else:
-    print("Error: DISCORD_TOKEN が設定されていません。")
+# --- 実行部分 ---
+if __name__ == "__main__":
+    # Webサーバーを別スレッドで起動してRenderのポート監視をパスする
+    keep_alive()
+    
+    # Discord Botを起動
+    token = os.getenv("DISCORD_TOKEN")
+    if token:
+        bot.run(token)
+    else:
+        print("Error: DISCORD_TOKEN が設定されていません。")
